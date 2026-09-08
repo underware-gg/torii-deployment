@@ -42,6 +42,7 @@ RUN torii --version && ldd --version | head -1
 # stray build of it can't silently index the wrong chain — entrypoint.sh refuses to start.
 ENV NETWORK=SN_SEPOLIA
 ENV TORII_DB_DIR=/data/torii-db \
+    TORII_ARTIFACTS_DIR=/data/static \
     CONTRACTS_JSON_PATH=/app/contracts.json \
     GENERATED_TORII_TOML=/app/torii.generated.toml \
     METRICS_PORT=9200

@@ -57,6 +57,14 @@ scripts/find-deploy-block.mjs      # binary-searches a contract's deployment blo
   entrypoint, or TOML by hand.
 - **Persistent storage is enforced.** `entrypoint.sh` refuses to boot if the parent of `TORII_DB_DIR`
   isn't a mount (`REQUIRE_PERSISTENT_DB=false` to bypass locally).
+- **Token images live on the volume too.** `[erc] artifacts_path` is set to `TORII_ARTIFACTS_DIR`
+  (default `<parent of TORII_DB_DIR>/static`, i.e. `/data/static`). Torii fills it lazily: the first
+  request to `/static/<contract>/<token_id>/image` downloads the image from the token's metadata
+  and writes it (plus `@medium`/`@small` variants) there; later requests are served from disk and
+  re-fetched only when the token's `updated_at` moves. Unset, torii uses a fresh `TempDir` per
+  process, so every restart used to drop the whole cache — a cost, not a data loss, since it is
+  always rebuildable from metadata. Verified in 1.8.16 (`crates/runner/src/lib.rs`,
+  `crates/server/src/handlers/static.rs`).
 - **Two modes, one config path.** A world with `enabled: true` prepends a `WORLD:0x…` entry to the same
   `indexing.contracts` array the tokens use; `false` gives pure token-indexer mode. Torii ≥1.6.1 no
   longer requires a world address.

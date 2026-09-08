@@ -49,6 +49,10 @@ from the db. Delete its rows (or wipe the volume). Torii never indexes backwards
 Generate a domain on the app port; keep `9200` (metrics) private. Never set `PORT`.
 `CORS_ORIGINS` is the only optional variable (default `*`).
 
+The volume holds both the index (`/data/torii-db`) and the token-image cache behind `/static`
+(`/data/static`, `TORII_ARTIFACTS_DIR`). Without it torii writes images to a temp dir that is
+thrown away on every redeploy.
+
 ## Local
 
 ```bash
@@ -58,4 +62,5 @@ pnpm docker:build:amd64             what Railway runs — catches the glibc ≥ 
 pnpm health:mainnet                 curl the live /health
 ```
 
-Endpoints: `/graphql` · `/sql` · `/mcp` · `/health` · gRPC on the same port · metrics on `:9200`.
+Endpoints: `/graphql` · `/sql` · `/mcp` · `/health` · `/static/<contract>/<token_id>/image` ·
+gRPC on the same port · metrics on `:9200`.
