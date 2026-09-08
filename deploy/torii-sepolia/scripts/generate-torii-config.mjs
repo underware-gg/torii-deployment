@@ -16,12 +16,26 @@
  *   PORT                 http port, injected by Railway (default: 8080)
  *   METRICS_PORT         prometheus port              (default: 9200)
  *   CORS_ORIGINS         comma separated origins      (default: *)
+ *
+ * <NETWORK>.indexing keys (all optional): namespaces, models, historical (event models kept
+ * per emission in event_messages_historical — an index-time decision, see CLAUDE.md),
+ * controllers, transactions, preconfirmed, raw_events. Unknown keys are rejected.
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
 const VALID_TYPES = ['ERC20', 'ERC721', 'ERC1155']
 const ADDRESS_RE = /^0x[0-9a-fA-F]{1,64}$/
+const MODEL_TAG_RE = /^[A-Za-z0-9_]+-[A-Za-z0-9_]+$/ // namespace-Model
+const INDEXING_KEYS = {
+  namespaces: 'string[]',
+  models: 'string[]',
+  historical: 'tag[]',
+  controllers: 'boolean',
+  transactions: 'boolean',
+  preconfirmed: 'boolean',
+  raw_events: 'boolean',
+}
 
 const args = parseArgs(process.argv.slice(2))
 const env = process.env
@@ -112,6 +126,24 @@ function validateNetwork(name, net) {
     }
   }
 
+  const idx = net.indexing ?? {}
+  if (typeof idx !== 'object' || Array.isArray(idx)) errors.push(`${name}.indexing: must be an object`)
+  else {
+    for (const [key, value] of Object.entries(idx)) {
+      const want = INDEXING_KEYS[key]
+      const label = `${name}.indexing.${key}`
+      if (!want) errors.push(`${label}: unknown key (want one of ${Object.keys(INDEXING_KEYS).join(', ')})`)
+      else if (want === 'boolean' && typeof value !== 'boolean') errors.push(`${label}: must be true or false`)
+      else if (want.endsWith('[]') && !(Array.isArray(value) && value.every((v) => typeof v === 'string'))) {
+        errors.push(`${label}: must be an array of strings`)
+      } else if (want === 'tag[]') {
+        for (const v of value) if (!MODEL_TAG_RE.test(v)) errors.push(`${label}: "${v}" is not a namespace-Model tag`)
+        const dupes = value.filter((v, i) => value.indexOf(v) !== i)
+        if (dupes.length) errors.push(`${label}: duplicate ${[...new Set(dupes)].join(', ')}`)
+      }
+    }
+  }
+
   if (![...worlds, ...contracts].some((c) => c.enabled === true)) {
     errors.push(`${name}: nothing enabled — Torii would have nothing to index`)
   }
@@ -166,6 +198,12 @@ function toToml(networkName, net, source) {
     ``,
     `[events]`,
     `raw = ${idx.raw_events === true}`,
+    ``,
+    // Models listed here keep every emission (event_messages_historical) instead of the latest
+    // per key. Torii decides per event at index time, so this must be in place before the
+    // world's first backfill — it cannot be retrofitted without a re-index.
+    `[sql]`,
+    `historical = ${JSON.stringify(idx.historical ?? [])}`,
     ``,
     `[erc]`,
     `artifacts_path = "${artifactsDir}"`,

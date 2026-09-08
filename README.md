@@ -13,6 +13,9 @@ template/               what ships in the image: Dockerfile (torii 1.8.16), entr
 scripts/
   build-deploy.mjs      template/ + contracts.json → deploy/torii-<net>/
   find-deploy-block.mjs finds a contract's deployment block over RPC
+  compare-reference.mjs generated config vs the original pistols configs, side by side
+test/                   node:test — generator output, validation, parity with reference/, torii boot
+reference/pistols/      frozen copies of the original pistols torii_*.toml (never shipped)
 deploy/torii-mainnet/   GENERATED — what Railway builds. Don't edit.
 deploy/torii-sepolia/   GENERATED
 ```
@@ -22,6 +25,8 @@ deploy/torii-sepolia/   GENERATED
 ```bash
 pnpm build      regenerate deploy/ from the root files
 pnpm check      validate contracts.json, fail if deploy/ is stale
+pnpm test       generator + validation + reference parity; boots torii if the pinned version is on PATH
+pnpm compare    print generated vs reference/pistols/ (a report, not a gate)
 pnpm blocks     fill in any "block": 0 from the chain
 git push        Railway rebuilds whichever folder changed
 ```
@@ -34,14 +39,19 @@ next to the existing index.
 from the db. Delete its rows (or wipe the volume). Torii never indexes backwards; details in
 [`CLAUDE.md`](./CLAUDE.md).
 
+**Enable the pistols world / LORDS:** flip `enabled` in `contracts.json` (world under `worlds`, `lords`
+under `contracts`), `pnpm build && pnpm check && pnpm test`, commit, push. `indexing.historical`,
+`preconfirmed` and `raw_events` are already in place; they had to land before the world's first
+backfill. The world starts at the oldest enabled block, not its own — see `CLAUDE.md`.
+
 **Bump torii:** `ARG TORII_VERSION` in `template/Dockerfile` and `.tool-versions`, read the
-[release notes](https://github.com/dojoengine/torii/releases), `pnpm build`, push.
+[release notes](https://github.com/dojoengine/torii/releases), `pnpm build`, `pnpm test`, push.
 
 ## Railway — set once per service
 
 |                | mainnet                     | sepolia                     |
 | -------------- | --------------------------- | --------------------------- |
-| project        | `pistols-solitaire-mainnet` | `pistols-solitaire-sepolia` |
+| project        | `pistols-torii-mainnet` | `pistols-torii-sepolia` |
 | service        | `torii`                     | `torii`                     |
 | Root Directory | `deploy/torii-mainnet`      | `deploy/torii-sepolia`      |
 | Volume         | `/data`                     | `/data`                     |
@@ -56,7 +66,7 @@ thrown away on every redeploy.
 ## Local
 
 ```bash
-pnpm dev                            torii via asdf, db in ./data/torii-db
+pnpm dev                            torii via asdf, db in ./data/torii-db, images in ./data/static
 DEPLOY=sepolia pnpm docker:build    build a deploy folder (docker:run / docker:shell likewise)
 pnpm docker:build:amd64             what Railway runs — catches the glibc ≥ 2.39 requirement
 pnpm health:mainnet                 curl the live /health

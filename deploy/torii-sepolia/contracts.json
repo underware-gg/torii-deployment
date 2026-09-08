@@ -13,10 +13,17 @@
     "indexing": {
       "namespaces": [],
       "models": [],
+      "historical": [
+        "pistols-PlayerActivityEvent",
+        "pistols-LordsReleaseEvent",
+        "pistols-FamePegEvent",
+        "pistols-PurchaseDistributionEvent",
+        "pistols-TrophyProgression"
+      ],
       "controllers": true,
       "transactions": false,
-      "preconfirmed": false,
-      "raw_events": false
+      "preconfirmed": true,
+      "raw_events": true
     },
     "contracts": [
       {
@@ -35,6 +42,7 @@
         "type": "ERC721",
         "address": "0x07ae27a31bb6526e3de9cf02f081f6ce0615ac12a6d7b85ee58b8ad7947a2809",
         "block": 664162,
+        "aspect": 1,
         "enabled": true
       },
       {
@@ -187,10 +195,17 @@
     "indexing": {
       "namespaces": [],
       "models": [],
+      "historical": [
+        "pistols-PlayerActivityEvent",
+        "pistols-LordsReleaseEvent",
+        "pistols-FamePegEvent",
+        "pistols-PurchaseDistributionEvent",
+        "pistols-TrophyProgression"
+      ],
       "controllers": true,
       "transactions": false,
-      "preconfirmed": false,
-      "raw_events": false
+      "preconfirmed": true,
+      "raw_events": true
     },
     "contracts": [
       {
@@ -201,6 +216,24 @@
         "address": "0x044e6bcc627e6201ce09f781d1aae44ea4c21c2fdef299e34fce55bef2d02210",
         "block": 23920,
         "enabled": false
+      },
+      {
+        "game": "pistols",
+        "slug": "fame",
+        "name": "Fame",
+        "type": "ERC20",
+        "address": "0x2549653a4ae1ff8d04a20b8820a49cbe97486c536ec0e4c8f68aa33d80067cf",
+        "block": 744979,
+        "enabled": true
+      },
+      {
+        "game": "pistols",
+        "slug": "fools",
+        "name": "Fools",
+        "type": "ERC20",
+        "address": "0x68a7a07e08fc3e723a878223d00f669106780d5ea6665eb15d893476d47bf3b",
+        "block": 744979,
+        "enabled": true
       },
       {
         "game": "pistols",

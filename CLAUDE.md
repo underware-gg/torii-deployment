@@ -30,9 +30,10 @@ Extracted from `underware-gg/pistols-solitaire`, where this lived as `torii/` + 
 `Dockerfile`, `entrypoint.sh` and `scripts/` all sit at the repo root, and the Docker build context is
 the root. If you port a change back to the original repo, mind that path shift.
 
-**No tests, no build step, no npm dependencies.** The two scripts are plain Node ESM (≥20);
-`pnpm install` is not needed to run `check`, `config` or `blocks`. Check `package.json` before
-suggesting a command.
+**No build step, no npm dependencies.** Everything is plain Node ESM (≥20) and `pnpm install` is
+never needed. Tests are `node:test` under `test/` (`pnpm test`); they need no packages either —
+the TOML reader in `scripts/lib/toml.mjs` covers only the subset torii configs use. Check
+`package.json` before suggesting a command.
 
 ## Layout
 
@@ -45,6 +46,10 @@ template/                          # everything that ships in the image — the 
 deploy/torii-<net>/                # GENERATED: template/ + ENV NETWORK + contracts.json. Railway builds these.
 scripts/build-deploy.mjs           # template/ + contracts.json → deploy/; --check for drift
 scripts/find-deploy-block.mjs      # binary-searches a contract's deployment block over RPC
+scripts/compare-reference.mjs      # generated vs reference/pistols/, side by side (report only)
+scripts/lib/toml.mjs               # subset TOML reader shared by tests and compare
+test/                              # node:test: generator, validation, reference parity, torii boot
+reference/pistols/                 # frozen originals we replace — compare against, never edit or ship
 .tool-versions                     # pins torii for local runs (asdf)
 .agents/skills/dojo-*              # vendored Dojo skills (see skills-lock.json)
 ```
@@ -68,6 +73,14 @@ scripts/find-deploy-block.mjs      # binary-searches a contract's deployment blo
 - **Two modes, one config path.** A world with `enabled: true` prepends a `WORLD:0x…` entry to the same
   `indexing.contracts` array the tokens use; `false` gives pure token-indexer mode. Torii ≥1.6.1 no
   longer requires a world address.
+- **`indexing.historical` is an index-time decision.** Models listed there (→ `[sql] historical`) keep
+  every emission in `event_messages_historical`; anything else collapses to latest-per-key as it is
+  indexed, and Torii never indexes backwards. So the list must be in place *before* the world it
+  belongs to is first enabled — which is why it is already set while the pistols world is still
+  `enabled: false`. Same for `raw_events`. The pistols client needs `PlayerActivityEvent` and
+  `LordsReleaseEvent` historical; Cartridge achievements need `TrophyProgression`.
+- **Unknown `indexing` keys are rejected** by `--check` (`pending` is the pre-1.8 name of
+  `preconfirmed`; the reference configs still use it).
 - **`worlds` is an array.** Torii 1.8.16 indexes any number of worlds in one instance — verified — with
   a sync head per `WORLD:` entry and `models`/`entities` keyed by `world_address`. Disabled entries
   stay in the file as history. `indexing.namespaces`/`models` filters are **global**, not per-world.
@@ -93,15 +106,27 @@ scripts/find-deploy-block.mjs      # binary-searches a contract's deployment blo
     `railway link` + CLI `apply` step — the user rejected any flow where deploying depends on a local
     CLI state that can rot); one root Dockerfile with `NETWORK` as a Railway variable (works, but
     moves the chain choice out of git and a missing variable was a silent wrong-chain risk).
-- **Both services are literally named `torii`, in different projects** — `pistols-solitaire-mainnet`
-  and `pistols-solitaire-sepolia`. The folder a service's Root Directory points at is what selects
-  the chain.
+- **Both services are literally named `torii`, in different projects** — `pistols-torii-mainnet`
+  and `pistols-torii-sepolia`. The folder a service's Root Directory points at is what selects
+  the chain. The mainnet domain was renamed from `pistols-solitaire-mainnet` on 2026-09-08; the
+  pistols client (`sdk/src/games/pistols/config/networks.ts` in `underware-gg/pistols`) still
+  points at the `pistols-solitaire-*` domains and needs updating separately.
 - **The two services are not in the same situation.** Mainnet is **live** (torii 1.8.16, 13
   contracts, heads current) and its volume holds a warm index — a migration, never a re-index; do
   not recreate the volume. Sepolia has **never been deployed** (`pistols-torii-sepolia.up.railway.app`
-  returns Railway's `Application not found`) even though `client/src/dojo/profiles.ts` in
-  `pistols-solitaire` already points at that URL — so its domain must match, or the client stays
-  broken. The domain is a dashboard step.
+  returns Railway's `Application not found`) even though clients already point at it
+  (`client/src/dojo/profiles.ts` in `pistols-solitaire`). The domain is a dashboard step and must
+  match what the clients use.
+- **The pistols world and LORDS are prepared but disabled** (`enabled: false` on both networks, as of
+  2026-09-08) — the user will enable them in a later update. Enabling the world backfills it from the
+  global `world_block`, not its own block (see the 1.8.16 bug below); enabling LORDS lowers that to
+  the LORDS deployment block and is by far the largest backfill. The pistols client reads LORDS
+  balances from Torii's `token_balances`, so without LORDS indexed it shows none.
+- **RPC spec version.** Torii 1.8.16 wants JSON-RPC 0.9 and only *warns* on a mismatch; the Cartridge
+  `v0_9` and `v0_10` endpoints both report `0.10.2` today and the live mainnet indexes fine on
+  `v0_10`. Torii 1.8.7 hard-fails on the same endpoint — if a local run dies with "Provider spec
+  version is not supported", check `torii --version`: the asdf shim reads `.tool-versions` from the
+  *working directory*, so a torii started from elsewhere is the global version.
 - **Torii's TOML schema changes between minor versions.** `TORII_VERSION` is a Docker build arg pinned
   in `Dockerfile` and mirrored in `.tool-versions`; validate generated config against `torii --help`
   for the pinned version before trusting any flag, and read the release notes on a bump.
