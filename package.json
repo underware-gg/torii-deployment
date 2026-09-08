@@ -7,20 +7,18 @@
   "license": "CC0-1.0",
   "packageManager": "pnpm@10.30.1",
   "scripts": {
-    "check": "node scripts/generate-torii-config.mjs --check -c ./contracts.json",
-    "config": "node scripts/generate-torii-config.mjs -c ./contracts.json -o ./torii.generated.toml -n ${NETWORK:-SN_MAIN}",
+    "check": "node template/scripts/generate-torii-config.mjs --check -c ./contracts.json && node scripts/build-deploy.mjs --check",
+    "build": "node scripts/build-deploy.mjs",
+    "config": "node template/scripts/generate-torii-config.mjs -c ./contracts.json -o ./torii.generated.toml -n ${NETWORK:-SN_MAIN}",
     "blocks": "node scripts/find-deploy-block.mjs -c ./contracts.json --update",
     "blocks:force": "node scripts/find-deploy-block.mjs -c ./contracts.json --update --force",
     "dev": "TORII_DB_DIR=./data/torii-db PORT=${PORT:-8080} pnpm run config && torii --config ./torii.generated.toml",
-    "docker:build": "docker build -t torii-indexer .",
-    "docker:build:amd64": "docker build --platform linux/amd64 -t torii-indexer .",
-    "docker:run": "docker run --rm -it -p 8080:8080 -p 9200:9200 -e NETWORK=${NETWORK:-SN_MAIN} -e PORT=8080 -v torii-indexer-db:/data torii-indexer",
-    "docker:shell": "docker run --rm -it --entrypoint bash torii-indexer",
-    "deploy": "railway up --detach",
-    "logs": "railway logs",
-    "ssh": "railway ssh",
-    "status": "railway status",
-    "vars": "railway variables"
+    "docker:build": "docker build -t torii-${DEPLOY:-mainnet} deploy/torii-${DEPLOY:-mainnet}",
+    "docker:build:amd64": "docker build --platform linux/amd64 -t torii-${DEPLOY:-mainnet} deploy/torii-${DEPLOY:-mainnet}",
+    "docker:run": "docker run --rm -it -p 8080:8080 -p 9200:9200 -e PORT=8080 -v torii-${DEPLOY:-mainnet}-db:/data torii-${DEPLOY:-mainnet}",
+    "docker:shell": "docker run --rm -it --entrypoint bash torii-${DEPLOY:-mainnet}",
+    "health:mainnet": "curl -fsS https://pistols-solitaire-mainnet.up.railway.app/health",
+    "health:sepolia": "curl -fsS https://pistols-solitaire-sepolia.up.railway.app/health"
   },
   "engines": {
     "node": ">=20"

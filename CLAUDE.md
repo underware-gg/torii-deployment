@@ -38,12 +38,14 @@ suggesting a command.
 
 ```
 contracts.json                     # single source of truth for what gets indexed
-Dockerfile                         # pinned torii binary on node:22-trixie-slim
-entrypoint.sh                      # volume check → generate config → exec torii
-railway.toml                       # Railway build + deploy settings
-.tool-versions                     # pins torii for local runs (asdf)
-scripts/generate-torii-config.mjs  # contracts.json → torii TOML, + --check validator
+template/                          # everything that ships in the image — the ONLY place to edit it
+├── Dockerfile                     # pinned torii binary on node:22-trixie-slim, no NETWORK
+├── entrypoint.sh                  # volume check → generate config → exec torii
+└── scripts/generate-torii-config.mjs   # contracts.json → torii TOML, + --check validator
+deploy/torii-<net>/                # GENERATED: template/ + ENV NETWORK + contracts.json. Railway builds these.
+scripts/build-deploy.mjs           # template/ + contracts.json → deploy/; --check for drift
 scripts/find-deploy-block.mjs      # binary-searches a contract's deployment block over RPC
+.tool-versions                     # pins torii for local runs (asdf)
 .agents/skills/dojo-*              # vendored Dojo skills (see skills-lock.json)
 ```
 
@@ -67,6 +69,31 @@ scripts/find-deploy-block.mjs      # binary-searches a contract's deployment blo
 - **Railway deployment.** Railway injects `PORT` — never set it manually. A Volume must be mounted at
   `/data` with `TORII_DB_DIR=/data/torii-db`, or every redeploy re-indexes from scratch.
   GraphQL/SQL/MCP/gRPC all share the one HTTP port; metrics (`9200`) must stay off the public domain.
+- **Generated per-network build contexts — the user's explicit choice; do not re-architect.**
+  `scripts/build-deploy.mjs` copies `template/` (inserting `ENV NETWORK=<net>` into the Dockerfile)
+  plus the root `contracts.json` into `deploy/torii-<net>/`. Railway's only per-service setup is Root Directory = that folder, a volume
+  at `/data`, and a domain. Then it's edit → `pnpm build` → commit → push. Rules:
+  - **`deploy/` is generated and committed.** Never hand-edit it. `pnpm check` runs
+    `build-deploy.mjs --check` and fails on drift, including stray files. Any change under `template/`
+    or to `contracts.json` needs a regenerate in the same commit.
+  - **Duplication is intentional.** Two copies of `contracts.json` etc. exist by design so each folder
+    is a self-contained build context with no dependency on files outside it — that is what lets
+    Root Directory do all the work. Don't "deduplicate" it with symlinks or `..` COPYs; Railway ships
+    only the root-directory folder to the builder (that failure mode was hit: `"/entrypoint.sh": not found`).
+  - **Rejected alternatives, don't reintroduce:** `railway.toml` config-as-code (deprecated, read
+    until 2026-12-01, no new opt-ins); `.railway/railway.ts` IaC (works, but requires a per-folder
+    `railway link` + CLI `apply` step — the user rejected any flow where deploying depends on a local
+    CLI state that can rot); one root Dockerfile with `NETWORK` as a Railway variable (works, but
+    moves the chain choice out of git and a missing variable was a silent wrong-chain risk).
+- **Both services are literally named `torii`, in different projects** — `pistols-solitaire-mainnet`
+  and `pistols-solitaire-sepolia`. The folder a service's Root Directory points at is what selects
+  the chain.
+- **The two services are not in the same situation.** Mainnet is **live** (torii 1.8.16, 13
+  contracts, heads current) and its volume holds a warm index — a migration, never a re-index; do
+  not recreate the volume. Sepolia has **never been deployed** (`pistols-torii-sepolia.up.railway.app`
+  returns Railway's `Application not found`) even though `client/src/dojo/profiles.ts` in
+  `pistols-solitaire` already points at that URL — so its domain must match, or the client stays
+  broken. The domain is a dashboard step.
 - **Torii's TOML schema changes between minor versions.** `TORII_VERSION` is a Docker build arg pinned
   in `Dockerfile` and mirrored in `.tool-versions`; validate generated config against `torii --help`
   for the pinned version before trusting any flag, and read the release notes on a bump.
