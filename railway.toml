@@ -1,0 +1,14 @@
+# Railway service config for the Torii indexer.
+# One image serves every network — set NETWORK=SN_MAIN or SN_SEPOLIA per service.
+# See README.md.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+numReplicas = 1

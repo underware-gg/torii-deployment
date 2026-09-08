@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "Bash(grep *)",
+      "Bash(pnpm check)",
+      "Bash(pnpm config)",
+      "Bash(pnpm blocks)",
+      "Bash(pnpm blocks:force)",
+      "Bash(pnpm run check)",
+      "Bash(pnpm run config)",
+      "Bash(docker build *)",
+      "Bash(railway status *)",
+      "Bash(railway variables *)",
+      "Bash(railway logs *)",
+      "Bash(git --no-pager log *)",
+      "Bash(git diff *)",
+      "Bash(git status *)"
+    ]
+  }
+}

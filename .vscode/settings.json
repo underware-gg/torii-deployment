@@ -1,0 +1,31 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/data": true,
+    "**/*.generated.toml": true,
+  },
+  "search.exclude": {
+    "**/*-lock.json": true,
+    "**/*-lock.yaml": true,
+    "**/*.lock": true,
+    "**/.gitignore": true,
+    ".agents": true,
+    ".claude": true,
+  },
+  "editor.detectIndentation": false,
+  "editor.formatOnPaste": true,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "[python]": {
+    "editor.tabSize": 4,
+  },
+  "[shellscript]": {
+    "editor.tabSize": 2,
+  },
+  "[dockerfile]": {
+    "editor.tabSize": 4,
+  },
+  "window.openFoldersInNewWindow": "on",
+  "workbench.editor.pinnedTabsOnSeparateRow": true,
+  "workbench.editor.tabSizing": "shrink",
+}

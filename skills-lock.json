@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "dojo-indexer": {
+      "source": "dojoengine/book",
+      "sourceType": "github",
+      "skillPath": "skills/dojo-indexer/SKILL.md",
+      "computedHash": "b33c1c982011b0f0a4ea955b4f32111f94cd45f90006990f47f624de1a143206"
+    },
+    "dojo-token": {
+      "source": "dojoengine/book",
+      "sourceType": "github",
+      "skillPath": "skills/dojo-token/SKILL.md",
+      "computedHash": "de851ec3a71bce280f39c5d0097975859c1335bd38c6006c851bc09c38a6f7d1"
+    },
+    "dojo-world": {
+      "source": "dojoengine/book",
+      "sourceType": "github",
+      "skillPath": "skills/dojo-world/SKILL.md",
+      "computedHash": "bb3ebcbd4622e5632a5406cde84a2e5235a1a2dea9614299febfd14a6c21cddf"
+    }
+  }
+}

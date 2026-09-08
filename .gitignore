@@ -141,3 +141,10 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Torii indexer
+*.generated.toml
+data/
+
+# Claude Code — local, per-machine overrides
+.claude/settings.local.json
