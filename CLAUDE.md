@@ -58,8 +58,10 @@ reference/pistols/                 # frozen originals we replace — compare aga
 
 **The image ships `underware-gg/torii`, not `dojoengine/torii`.** Upstream is treated as
 archived; the fork carries it forward (indexer rollback recovery, static `/metadata` routes).
-`ARG TORII_REPO` / `ARG TORII_TAG` in the Dockerfile select the release; the base torii version
-is whatever the fork inherited (`torii --version` prints `1.9.3-uw (base torii v1.8.16, <sha>)`).
+`<NETWORK>.torii.{repo,tag}` in `contracts.json` selects the release **per network**;
+`build-deploy.mjs` stamps it into the bare `ARG TORII_REPO` / `ARG TORII_TAG` lines of the
+generated Dockerfile (the template has no defaults, like `NETWORK`). The base torii version is
+whatever the fork inherited (`torii --version` prints `1.9.3-uw (base torii v1.8.16, <sha>)`).
 
 - **Releases are tags.** An annotated `uw-vX.Y.Z` tag on a commit of the fork's `origin/main`
   triggers its `release.yml`: linux amd64/arm64 + darwin binaries (Windows was dropped — the
@@ -160,9 +162,10 @@ is whatever the fork inherited (`torii --version` prints `1.9.3-uw (base torii v
   `v0_10`. Torii 1.8.7 hard-fails on the same endpoint — if a local run dies with "Provider spec
   version is not supported", check `torii --version`: `torii` on PATH is the asdf shim, not the
   fork build, unless `TORII_BIN` is set.
-- **Torii's TOML schema changes between minor versions.** `TORII_TAG` is a Docker build arg pinned
-  in `Dockerfile`; validate generated config against `torii --help` for the pinned build before
-  trusting any flag, and read the fork's changes on a bump.
+- **Torii's TOML schema changes between minor versions.** The pin is `torii.tag` per network in
+  `contracts.json`; validate generated config against `torii --help` for the pinned build before
+  trusting any flag, and read the fork's changes on a bump. The two networks may run different
+  tags (e.g. sepolia first) — the generator and tests are per network for that reason.
 - **The base image must stay trixie or newer.** The amd64 torii release requires glibc ≥ 2.39 and
   bookworm ships 2.36. The arm64 release is linked against an older glibc, so this only breaks on
   amd64 (i.e. Railway) — reproduce locally with `pnpm docker:build:amd64`. The `RUN torii --version`
@@ -217,5 +220,5 @@ scan, not wrong data. This makes the generator's `TYPE:address:start_block` form
 
 **`/Users/roger/Dev/Dojo`** — local checkouts of `dojo`, `torii`, `dojo.js`, `dojo.c`, `controller`,
 `origami`. Read these for authoritative Dojo/Torii behaviour instead of guessing or trusting stale
-docs — but check the version they sit at against the pinned `TORII_TAG` first. For fork
+docs — but check the version they sit at against the network's `torii.tag` first. For fork
 behaviour read `../torii-underware` (branch `main`) rather than the `torii` checkout there.

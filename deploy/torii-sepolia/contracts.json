@@ -1,6 +1,10 @@
 {
   "SN_MAIN": {
     "rpc_url": "https://api.cartridge.gg/x/starknet/mainnet/rpc/v0_10",
+    "torii": {
+      "repo": "underware-gg/torii",
+      "tag": "uw-v1.9.3"
+    },
     "worlds": [
       {
         "name": "world",
@@ -183,6 +187,10 @@
   },
   "SN_SEPOLIA": {
     "rpc_url": "https://api.cartridge.gg/x/starknet/sepolia/rpc/v0_10",
+    "torii": {
+      "repo": "underware-gg/torii",
+      "tag": "uw-v1.9.3"
+    },
     "worlds": [
       {
         "name": "world",

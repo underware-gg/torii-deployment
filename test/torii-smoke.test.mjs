@@ -9,13 +9,14 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { generate, loadContracts, pinnedTorii, ROOT } from './helpers.mjs'
 
-const pinned = pinnedTorii()
 const TORII_BIN = process.env.TORII_BIN || 'torii'
 const local = spawnSync(TORII_BIN, ['--version'], { encoding: 'utf8', cwd: ROOT })
 const localVersion = local.status === 0 ? /torii (\S+)/.exec(local.stdout)?.[1] : undefined
-const skip = localVersion !== pinned.version ? `torii ${pinned.version} (${pinned.tag}) not at ${TORII_BIN} (found ${localVersion ?? 'none'})` : false
 
 for (const network of Object.keys(loadContracts())) {
+  // the pin is per network, so a local binary may match one network and not the other
+  const pinned = pinnedTorii(network)
+  const skip = localVersion !== pinned.version ? `torii ${pinned.version} (${pinned.tag}) not at ${TORII_BIN} (found ${localVersion ?? 'none'})` : false
   test(`${network}: torii ${pinned.version} boots with the generated config`, { skip, timeout: 90_000 }, async () => {
     const dir = mkdtempSync(join(tmpdir(), `torii-smoke-${network}-`))
     const { toml } = generate(network, { TORII_DB_DIR: join(dir, 'torii-db'), PORT: '0', METRICS_PORT: '0' })

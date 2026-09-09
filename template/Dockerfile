@@ -7,11 +7,13 @@
 # --- fetch the pinned torii release binary ---------------------------------
 FROM debian:trixie-slim AS torii-bin
 
-# Underware's torii fork (upstream dojoengine/torii is no longer tracked). Its release
-# workflow publishes torii_<tag>_linux_<arch>.tar.gz for every annotated `uw-v*` tag, the
-# same layout as upstream, so TORII_REPO=dojoengine/torii TORII_TAG=v1.8.16 is the way back.
-ARG TORII_REPO=underware-gg/torii
-ARG TORII_TAG=uw-v1.9.3
+# Which torii: <NETWORK>.torii.{repo,tag} in contracts.json. No defaults here — the generated
+# per-network Dockerfiles carry the values (scripts/build-deploy.mjs fills them in), so a stray
+# build of this template fails at the download instead of shipping an unpinned binary.
+# Underware's fork publishes torii_<tag>_linux_<arch>.tar.gz for every annotated `uw-v*` tag,
+# the same layout as upstream, so repo dojoengine/torii + tag v1.8.16 is the way back.
+ARG TORII_REPO
+ARG TORII_TAG
 # Populated by BuildKit (amd64 on Railway, arm64 on Apple Silicon).
 ARG TARGETARCH
 

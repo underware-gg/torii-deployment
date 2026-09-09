@@ -88,6 +88,16 @@ test('rejects an unknown indexing key (e.g. the pre-1.8 "pending")', () => {
   assert.match(r.stderr, /indexing\.pending: unknown key/)
 })
 
+test('rejects a missing or malformed torii pin', () => {
+  let r = run(['--check', '-c', tempContracts((d) => { delete d[first].torii })])
+  assert.equal(r.status, 1)
+  assert.match(r.stderr, /missing "torii"/)
+  r = run(['--check', '-c', tempContracts((d) => { d[first].torii = { repo: 'torii', tag: '1.9.3' } })])
+  assert.equal(r.status, 1)
+  assert.match(r.stderr, /torii\.repo: "torii" is not a GitHub owner\/name/)
+  assert.match(r.stderr, /torii\.tag: "1\.9\.3" is not a release tag/)
+})
+
 test('rejects a historical entry that is not a namespace-Model tag', () => {
   const path = tempContracts((d) => { d[first].indexing.historical = ['PlayerActivityEvent'] })
   const r = run(['--check', '-c', path])

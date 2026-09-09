@@ -8,8 +8,8 @@ Docker folder per network.
 ## What's here
 
 ```
-contracts.json          what to index, per network — the file you normally edit
-template/               what ships in the image: Dockerfile (torii uw-v1.9.3), entrypoint.sh,
+contracts.json          what to index and which torii (repo + tag), per network — the file you normally edit
+template/               what ships in the image: Dockerfile (torii pin filled in per network), entrypoint.sh,
                         scripts/generate-torii-config.mjs (contracts.json → torii TOML, at boot)
 scripts/
   build-deploy.mjs      template/ + contracts.json → deploy/torii-<net>/
@@ -56,8 +56,9 @@ git tag -a uw-v1.9.3 -m "..." origin/main && git push origin uw-v1.9.3     # or 
 When the run reaches `publish` it waits — approve the `underware-release` deployment on the run
 page. Then the release is public and the tarballs download.
 
-**Bump torii:** `ARG TORII_TAG` in `template/Dockerfile`, `pnpm build`, `pnpm test`, push. Set
-`TORII_REPO=dojoengine/torii TORII_TAG=v1.8.16` to go back to an upstream release.
+**Bump torii:** `torii.tag` under the network in `contracts.json` (each network pins its own
+`torii: { repo, tag }`), `pnpm build && pnpm check && pnpm test`, push. `repo: dojoengine/torii`
++ `tag: v1.8.16` goes back to an upstream release.
 
 ## Railway — set once per service
 

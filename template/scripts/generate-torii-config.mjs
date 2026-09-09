@@ -27,6 +27,8 @@ import { dirname, join, resolve } from 'node:path'
 const VALID_TYPES = ['ERC20', 'ERC721', 'ERC1155']
 const ADDRESS_RE = /^0x[0-9a-fA-F]{1,64}$/
 const MODEL_TAG_RE = /^[A-Za-z0-9_]+-[A-Za-z0-9_]+$/ // namespace-Model
+const TORII_REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/ // GitHub owner/name
+const TORII_TAG_RE = /^(uw-)?v\d+\.\d+\.\d+(-[A-Za-z0-9.]+)?$/ // dojoengine v1.8.16, underware uw-v1.9.3
 const INDEXING_KEYS = {
   namespaces: 'string[]',
   models: 'string[]',
@@ -148,6 +150,15 @@ function validateNetwork(name, net) {
     errors.push(`${name}: nothing enabled — Torii would have nothing to index`)
   }
   if (!(env.RPC_URL || net.rpc_url)) errors.push(`${name}: missing "rpc_url" (or set the RPC_URL env var)`)
+
+  // Which torii release the image ships (scripts/build-deploy.mjs stamps it into the Dockerfile).
+  // Torii itself never reads this; validated here because this is the one place the file is validated.
+  const torii = net.torii
+  if (!torii || typeof torii !== 'object' || Array.isArray(torii)) errors.push(`${name}: missing "torii": { "repo", "tag" }`)
+  else {
+    if (!TORII_REPO_RE.test(torii.repo ?? '')) errors.push(`${name}.torii.repo: "${torii.repo ?? ''}" is not a GitHub owner/name`)
+    if (!TORII_TAG_RE.test(torii.tag ?? '')) errors.push(`${name}.torii.tag: "${torii.tag ?? ''}" is not a release tag (v1.8.16 or uw-v1.9.3)`)
+  }
 
   return errors
 }
