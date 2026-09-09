@@ -7,7 +7,7 @@
         "game": "pistols",
         "address": "0x8b4838140a3cbd36ebe64d4b5aaf56a30cc3753c928a79338bf56c53f506c5",
         "block": 1376383,
-        "enabled": false
+        "enabled": true
       }
     ],
     "indexing": {
@@ -189,7 +189,7 @@
         "game": "pistols",
         "address": "0x8b4838140a3cbd36ebe64d4b5aaf56a30cc3753c928a79338bf56c53f506c5",
         "block": 744976,
-        "enabled": false
+        "enabled": true
       }
     ],
     "indexing": {
