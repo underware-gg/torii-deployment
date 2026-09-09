@@ -78,7 +78,7 @@ thrown away on every redeploy.
 
 ## Local
 
-The fork is not on asdf. Download `torii_uw-v1.9.3_darwin_arm64.tar.gz` from the
+The fork is not on asdf. Download `torii_uw-v1.9.4_darwin_arm64.tar.gz` from the
 [release](https://github.com/underware-gg/torii/releases) (or `cargo build --release --bin torii`
 in `../torii-underware`) and point `TORII_BIN` at it; unset, `torii` on PATH is used.
 

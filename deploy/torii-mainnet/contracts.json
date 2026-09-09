@@ -3,7 +3,7 @@
     "rpc_url": "https://api.cartridge.gg/x/starknet/mainnet/rpc/v0_10",
     "torii": {
       "repo": "underware-gg/torii",
-      "tag": "uw-v1.9.3"
+      "tag": "uw-v1.9.4"
     },
     "worlds": [
       {
@@ -189,7 +189,7 @@
     "rpc_url": "https://api.cartridge.gg/x/starknet/sepolia/rpc/v0_10",
     "torii": {
       "repo": "underware-gg/torii",
-      "tag": "uw-v1.9.3"
+      "tag": "uw-v1.9.4"
     },
     "worlds": [
       {
