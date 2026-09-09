@@ -14,7 +14,7 @@
     "config": "node template/scripts/generate-torii-config.mjs -c ./contracts.json -o ./torii.generated.toml -n ${NETWORK:-SN_MAIN}",
     "blocks": "node scripts/find-deploy-block.mjs -c ./contracts.json --update",
     "blocks:force": "node scripts/find-deploy-block.mjs -c ./contracts.json --update --force",
-    "dev": "TORII_DB_DIR=./data/torii-db PORT=${PORT:-8080} pnpm run config && torii --config ./torii.generated.toml",
+    "dev": "TORII_DB_DIR=./data/torii-db PORT=${PORT:-8080} pnpm run config && ${TORII_BIN:-torii} --config ./torii.generated.toml",
     "docker:build": "docker build -t torii-${DEPLOY:-mainnet} deploy/torii-${DEPLOY:-mainnet}",
     "docker:build:amd64": "docker build --platform linux/amd64 -t torii-${DEPLOY:-mainnet} deploy/torii-${DEPLOY:-mainnet}",
     "docker:run": "docker run --rm -it -p 8080:8080 -p 9200:9200 -e PORT=8080 -v torii-${DEPLOY:-mainnet}-db:/data torii-${DEPLOY:-mainnet}",

@@ -45,9 +45,16 @@ function cleanEnv() {
   return env
 }
 
-/** TORII_VERSION pinned in template/Dockerfile. */
-export function pinnedToriiVersion() {
-  const m = /^ARG TORII_VERSION=(\S+)/m.exec(readFileSync(join(ROOT, 'template/Dockerfile'), 'utf8'))
-  if (!m) throw new Error('template/Dockerfile: ARG TORII_VERSION not found')
-  return m[1]
+/**
+ * The torii release pinned in template/Dockerfile: { repo, tag, version }, where `version` is
+ * what that build prints for `torii --version`. The Underware fork stamps `uw-v1.9.3` as
+ * `1.9.3-uw (base torii v1.8.16, <sha>)`; upstream `v1.8.16` prints plain `1.8.16`.
+ */
+export function pinnedTorii() {
+  const dockerfile = readFileSync(join(ROOT, 'template/Dockerfile'), 'utf8')
+  const repo = /^ARG TORII_REPO=(\S+)/m.exec(dockerfile)?.[1]
+  const tag = /^ARG TORII_TAG=(\S+)/m.exec(dockerfile)?.[1]
+  if (!repo || !tag) throw new Error('template/Dockerfile: ARG TORII_REPO / TORII_TAG not found')
+  const version = tag.startsWith('uw-v') ? `${tag.slice(4)}-uw` : tag.replace(/^v/, '')
+  return { repo, tag, version }
 }

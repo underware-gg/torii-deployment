@@ -50,9 +50,42 @@ scripts/compare-reference.mjs      # generated vs reference/pistols/, side by si
 scripts/lib/toml.mjs               # subset TOML reader shared by tests and compare
 test/                              # node:test: generator, validation, reference parity, torii boot
 reference/pistols/                 # frozen originals we replace — compare against, never edit or ship
-.tool-versions                     # pins torii for local runs (asdf)
 .agents/skills/dojo-*              # vendored Dojo skills (see skills-lock.json)
+../torii-underware                 # underware-gg/torii, the fork the image ships — release from there
 ```
+
+## Torii fork
+
+**The image ships `underware-gg/torii`, not `dojoengine/torii`.** Upstream is treated as
+archived; the fork carries it forward (indexer rollback recovery, static `/metadata` routes).
+`ARG TORII_REPO` / `ARG TORII_TAG` in the Dockerfile select the release; the base torii version
+is whatever the fork inherited (`torii --version` prints `1.9.3-uw (base torii v1.8.16, <sha>)`).
+
+- **Releases are tags.** An annotated `uw-vX.Y.Z` tag on a commit of the fork's `origin/main`
+  triggers its `release.yml`: linux amd64/arm64 + darwin binaries (Windows was dropped — the
+  `aws-lc-sys` cmake build breaks on `windows-latest`), a GitHub release named after the tag,
+  and `ghcr.io/underware-gg/torii:<tag>`. The tarball layout matches upstream
+  (`torii_<tag>_linux_<arch>.tar.gz`), which is why one Dockerfile serves both. The ghcr
+  package is **private** (anonymous pull is denied), so the tarball route is the one that works
+  without registry credentials. ~40 min per run, one run at a time.
+- **`publish` pauses for a human.** The `underware-release` environment has required reviewers:
+  after the draft release is created the run sits at "waiting" until someone approves it on the
+  run page. The draft release and its assets are not downloadable until then.
+- **Version scheme is the user's call:** `1.9.x` deliberately breaks the fork's documented
+  `0.x`-while-tracking-upstream rule because upstream is not tracked any more. Every release
+  must be greater than every published `uw-v*` tag; the workflow rejects otherwise.
+- **`./scripts/release.sh candidate` in the fork needs `gh`** (not installed here) plus the
+  rulesets it verifies. A hand-pushed annotated tag on `origin/main` is what has actually been
+  used; the workflow itself only checks annotated + semver + newer than every published release
+  + on `main`. `uw-v1.9.0`–`uw-v1.9.2` are dead tags from fixing the workflow; never reuse.
+- **`main` is protected: PR only.** Workflow fixes go on a `dev/*` branch, the user merges
+  (squash — don't wait on a commit SHA, check file content on `origin/main`), then tag.
+- **No Docker on this machine.** `pnpm docker:*` cannot run here; Railway's build is the first
+  real image build. Verify a new tag by downloading the tarball with the Dockerfile's URL
+  pattern and checking `file` (x86-64 ELF) and the max `GLIBC_2.xx` symbol instead.
+- **No asdf.** The fork is not in the asdf torii plugin; `TORII_BIN` points `pnpm dev` and the
+  smoke test at a downloaded or `cargo build --release` binary. `torii` on PATH is the asdf
+  shim and resolves to whatever global version asdf has.
 
 ## Design points
 
@@ -125,11 +158,11 @@ reference/pistols/                 # frozen originals we replace — compare aga
 - **RPC spec version.** Torii 1.8.16 wants JSON-RPC 0.9 and only *warns* on a mismatch; the Cartridge
   `v0_9` and `v0_10` endpoints both report `0.10.2` today and the live mainnet indexes fine on
   `v0_10`. Torii 1.8.7 hard-fails on the same endpoint — if a local run dies with "Provider spec
-  version is not supported", check `torii --version`: the asdf shim reads `.tool-versions` from the
-  *working directory*, so a torii started from elsewhere is the global version.
-- **Torii's TOML schema changes between minor versions.** `TORII_VERSION` is a Docker build arg pinned
-  in `Dockerfile` and mirrored in `.tool-versions`; validate generated config against `torii --help`
-  for the pinned version before trusting any flag, and read the release notes on a bump.
+  version is not supported", check `torii --version`: `torii` on PATH is the asdf shim, not the
+  fork build, unless `TORII_BIN` is set.
+- **Torii's TOML schema changes between minor versions.** `TORII_TAG` is a Docker build arg pinned
+  in `Dockerfile`; validate generated config against `torii --help` for the pinned build before
+  trusting any flag, and read the fork's changes on a bump.
 - **The base image must stay trixie or newer.** The amd64 torii release requires glibc ≥ 2.39 and
   bookworm ships 2.36. The arm64 release is linked against an older glibc, so this only breaks on
   amd64 (i.e. Railway) — reproduce locally with `pnpm docker:build:amd64`. The `RUN torii --version`
@@ -184,4 +217,5 @@ scan, not wrong data. This makes the generator's `TYPE:address:start_block` form
 
 **`/Users/roger/Dev/Dojo`** — local checkouts of `dojo`, `torii`, `dojo.js`, `dojo.c`, `controller`,
 `origami`. Read these for authoritative Dojo/Torii behaviour instead of guessing or trusting stale
-docs — but check the version they sit at against the pinned `TORII_VERSION` first.
+docs — but check the version they sit at against the pinned `TORII_TAG` first. For fork
+behaviour read `../torii-underware` (branch `main`) rather than the `torii` checkout there.

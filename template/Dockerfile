@@ -7,7 +7,11 @@
 # --- fetch the pinned torii release binary ---------------------------------
 FROM debian:trixie-slim AS torii-bin
 
-ARG TORII_VERSION=1.8.16
+# Underware's torii fork (upstream dojoengine/torii is no longer tracked). Its release
+# workflow publishes torii_<tag>_linux_<arch>.tar.gz for every annotated `uw-v*` tag, the
+# same layout as upstream, so TORII_REPO=dojoengine/torii TORII_TAG=v1.8.16 is the way back.
+ARG TORII_REPO=underware-gg/torii
+ARG TORII_TAG=uw-v1.9.3
 # Populated by BuildKit (amd64 on Railway, arm64 on Apple Silicon).
 ARG TARGETARCH
 
@@ -17,7 +21,7 @@ RUN apt-get update \
 
 RUN set -eux; \
     arch="${TARGETARCH:-$(dpkg --print-architecture)}"; \
-    url="https://github.com/dojoengine/torii/releases/download/v${TORII_VERSION}/torii_v${TORII_VERSION}_linux_${arch}.tar.gz"; \
+    url="https://github.com/${TORII_REPO}/releases/download/${TORII_TAG}/torii_${TORII_TAG}_linux_${arch}.tar.gz"; \
     curl -fsSL "$url" -o /tmp/torii.tar.gz; \
     tar -xzf /tmp/torii.tar.gz -C /usr/local/bin torii; \
     chmod +x /usr/local/bin/torii
