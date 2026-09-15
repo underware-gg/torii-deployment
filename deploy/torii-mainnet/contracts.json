@@ -3,7 +3,32 @@
     "rpc_url": "https://api.cartridge.gg/x/starknet/mainnet/rpc/v0_10",
     "torii": {
       "repo": "underware-gg/torii",
-      "tag": "uw-v1.9.4"
+      "tag": "uw-v1.9.4",
+      "indexing": {
+        "namespaces": [],
+        "models": [],
+        "historical": [
+          "pistols-PlayerActivityEvent",
+          "pistols-LordsReleaseEvent",
+          "pistols-FamePegEvent",
+          "pistols-PurchaseDistributionEvent",
+          "pistols-TrophyProgression"
+        ],
+        "controllers": true,
+        "transactions": false,
+        "preconfirmed": true,
+        "raw_events": true,
+        "polling_interval": 2000,
+        "max_concurrent_tasks": 16
+      },
+      "sql": {
+        "cache_size": -64000,
+        "soft_memory_limit": 268435456,
+        "max_connections": 8
+      },
+      "grpc": {
+        "subscription_buffer_size": 1024
+      }
     },
     "worlds": [
       {
@@ -14,21 +39,6 @@
         "enabled": true
       }
     ],
-    "indexing": {
-      "namespaces": [],
-      "models": [],
-      "historical": [
-        "pistols-PlayerActivityEvent",
-        "pistols-LordsReleaseEvent",
-        "pistols-FamePegEvent",
-        "pistols-PurchaseDistributionEvent",
-        "pistols-TrophyProgression"
-      ],
-      "controllers": true,
-      "transactions": false,
-      "preconfirmed": true,
-      "raw_events": true
-    },
     "contracts": [
       {
         "game": "realms",
@@ -189,7 +199,32 @@
     "rpc_url": "https://api.cartridge.gg/x/starknet/sepolia/rpc/v0_10",
     "torii": {
       "repo": "underware-gg/torii",
-      "tag": "uw-v1.9.4"
+      "tag": "uw-v1.9.4",
+      "indexing": {
+        "namespaces": [],
+        "models": [],
+        "historical": [
+          "pistols-PlayerActivityEvent",
+          "pistols-LordsReleaseEvent",
+          "pistols-FamePegEvent",
+          "pistols-PurchaseDistributionEvent",
+          "pistols-TrophyProgression"
+        ],
+        "controllers": true,
+        "transactions": false,
+        "preconfirmed": true,
+        "raw_events": true,
+        "polling_interval": 2000,
+        "max_concurrent_tasks": 16
+      },
+      "sql": {
+        "cache_size": -64000,
+        "soft_memory_limit": 268435456,
+        "max_connections": 8
+      },
+      "grpc": {
+        "subscription_buffer_size": 1024
+      }
     },
     "worlds": [
       {
@@ -200,21 +235,6 @@
         "enabled": true
       }
     ],
-    "indexing": {
-      "namespaces": [],
-      "models": [],
-      "historical": [
-        "pistols-PlayerActivityEvent",
-        "pistols-LordsReleaseEvent",
-        "pistols-FamePegEvent",
-        "pistols-PurchaseDistributionEvent",
-        "pistols-TrophyProgression"
-      ],
-      "controllers": true,
-      "transactions": false,
-      "preconfirmed": true,
-      "raw_events": true
-    },
     "contracts": [
       {
         "game": "realms",

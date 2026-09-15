@@ -40,7 +40,7 @@ for (const network of networks) {
 
   test(`${network}: indexing flags, events.raw and sql.historical mirror contracts.json`, () => {
     const { config } = generate(network)
-    const idx = net.indexing
+    const idx = net.torii.indexing
     assert.equal(config.rpc, net.rpc_url)
     assert.deepEqual(config.indexing.namespaces, idx.namespaces ?? [])
     assert.deepEqual(config.indexing.models, idx.models ?? [])
@@ -51,6 +51,18 @@ for (const network of networks) {
     assert.deepEqual(config.sql.historical, idx.historical ?? [])
     assert.equal('pending' in config.indexing, false, 'pending was renamed preconfirmed in torii 1.8')
     assert.equal('world_address' in config, false, 'top-level world_address is not emitted; WORLD: entries carry it')
+  })
+
+  test(`${network}: torii.indexing, torii.sql and torii.grpc settings pass through to their TOML sections`, () => {
+    const { config } = generate(network)
+    const { indexing, sql, grpc } = net.torii
+    for (const key of ['polling_interval', 'max_concurrent_tasks', 'blocks_chunk_size', 'events_chunk_size']) {
+      if (key in indexing) assert.equal(config.indexing[key], indexing[key])
+      else assert.equal(key in config.indexing, false, `${key} not set, so not emitted`)
+    }
+    for (const [key, value] of Object.entries(sql ?? {})) assert.equal(config.sql[key], value)
+    for (const [key, value] of Object.entries(grpc ?? {})) assert.equal(config.grpc[key], value)
+    if (!grpc || !Object.keys(grpc).length) assert.equal('grpc' in config, false, 'empty [grpc] is not emitted')
   })
 
   test(`${network}: paths and ports — defaults`, () => {
@@ -82,10 +94,41 @@ for (const network of networks) {
 const first = networks[0]
 
 test('rejects an unknown indexing key (e.g. the pre-1.8 "pending")', () => {
-  const path = tempContracts((d) => { d[first].indexing.pending = true })
+  const path = tempContracts((d) => { d[first].torii.indexing.pending = true })
   const r = run(['--check', '-c', path])
   assert.equal(r.status, 1)
-  assert.match(r.stderr, /indexing\.pending: unknown key/)
+  assert.match(r.stderr, /torii\.indexing\.pending: unknown key/)
+})
+
+test('rejects indexing at its old location, next to the torii pin', () => {
+  const path = tempContracts((d) => { d[first].indexing = d[first].torii.indexing; delete d[first].torii.indexing })
+  const r = run(['--check', '-c', path])
+  assert.equal(r.status, 1)
+  assert.match(r.stderr, /\.indexing: moved to .*\.torii\.indexing/)
+})
+
+test('rejects unknown or mistyped sql and grpc settings', () => {
+  let r = run(['--check', '-c', tempContracts((d) => { d[first].torii.sql.cache = -64000 })])
+  assert.equal(r.status, 1)
+  assert.match(r.stderr, /torii\.sql\.cache: unknown key/)
+  r = run(['--check', '-c', tempContracts((d) => { d[first].torii.sql.cache_size = '-64000' })])
+  assert.equal(r.status, 1)
+  assert.match(r.stderr, /torii\.sql\.cache_size: must be an integer/)
+  r = run(['--check', '-c', tempContracts((d) => { d[first].torii.grpc.optimistic = 'yes' })])
+  assert.equal(r.status, 1)
+  assert.match(r.stderr, /torii\.grpc\.optimistic: must be true or false/)
+  r = run(['--check', '-c', tempContracts((d) => { d[first].torii.grpc = [] })])
+  assert.equal(r.status, 1)
+  assert.match(r.stderr, /torii\.grpc: must be an object/)
+})
+
+test('omits [grpc] and passthrough keys when torii has no settings', () => {
+  const path = tempContracts((d) => { delete d[first].torii.sql; delete d[first].torii.grpc; delete d[first].torii.indexing.polling_interval })
+  const r = run(['--print', '-n', first, '-c', path])
+  assert.equal(r.status, 0, r.stderr)
+  assert.doesNotMatch(r.stdout, /\[grpc\]/)
+  assert.doesNotMatch(r.stdout, /polling_interval/)
+  assert.doesNotMatch(r.stdout, /cache_size/)
 })
 
 test('rejects a missing or malformed torii pin', () => {
@@ -99,7 +142,7 @@ test('rejects a missing or malformed torii pin', () => {
 })
 
 test('rejects a historical entry that is not a namespace-Model tag', () => {
-  const path = tempContracts((d) => { d[first].indexing.historical = ['PlayerActivityEvent'] })
+  const path = tempContracts((d) => { d[first].torii.indexing.historical = ['PlayerActivityEvent'] })
   const r = run(['--check', '-c', path])
   assert.equal(r.status, 1)
   assert.match(r.stderr, /historical: "PlayerActivityEvent" is not a namespace-Model tag/)

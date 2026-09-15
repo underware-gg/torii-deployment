@@ -41,7 +41,7 @@ from the db. Delete its rows (or wipe the volume). Torii never indexes backwards
 [`CLAUDE.md`](./CLAUDE.md).
 
 **Enable the pistols world / LORDS:** flip `enabled` in `contracts.json` (world under `worlds`, `lords`
-under `contracts`), `pnpm build && pnpm check && pnpm test`, commit, push. `indexing.historical`,
+under `contracts`), `pnpm build && pnpm check && pnpm test`, commit, push. `torii.indexing.historical`,
 `preconfirmed` and `raw_events` are already in place; they had to land before the world's first
 backfill. The world starts at the oldest enabled block, not its own — see `CLAUDE.md`.
 

@@ -17,9 +17,17 @@
  *   METRICS_PORT         prometheus port              (default: 9200)
  *   CORS_ORIGINS         comma separated origins      (default: *)
  *
- * <NETWORK>.indexing keys (all optional): namespaces, models, historical (event models kept
- * per emission in event_messages_historical — an index-time decision, see CLAUDE.md),
- * controllers, transactions, preconfirmed, raw_events. Unknown keys are rejected.
+ * <NETWORK>.torii carries the torii pin (repo, tag) and its settings, all optional:
+ *   indexing   namespaces, models, historical (event models kept per emission in
+ *              event_messages_historical — an index-time decision, see CLAUDE.md), controllers,
+ *              transactions, preconfirmed, raw_events, polling_interval, max_concurrent_tasks,
+ *              blocks_chunk_size, events_chunk_size
+ *   sql        cache_size, page_size, soft_memory_limit, hard_memory_limit, mmap_size,
+ *              max_connections, idle_timeout, wal_autocheckpoint, journal_size_limit
+ *   grpc       subscription_buffer_size, optimistic, tcp_keepalive_interval,
+ *              http2_keepalive_interval, http2_keepalive_timeout, max_message_size
+ * Keys are emitted into the matching TOML section verbatim; unknown keys are rejected so a typo
+ * cannot silently fall back to a torii default.
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -29,6 +37,8 @@ const ADDRESS_RE = /^0x[0-9a-fA-F]{1,64}$/
 const MODEL_TAG_RE = /^[A-Za-z0-9_]+-[A-Za-z0-9_]+$/ // namespace-Model
 const TORII_REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/ // GitHub owner/name
 const TORII_TAG_RE = /^(uw-)?v\d+\.\d+\.\d+(-[A-Za-z0-9.]+)?$/ // dojoengine v1.8.16, underware uw-v1.9.3
+// Allowed keys per settings section and the value type each takes. Names match torii's own
+// TOML keys (crates/cli/src/options.rs in the pinned release) so they can be passed through.
 const INDEXING_KEYS = {
   namespaces: 'string[]',
   models: 'string[]',
@@ -37,6 +47,32 @@ const INDEXING_KEYS = {
   transactions: 'boolean',
   preconfirmed: 'boolean',
   raw_events: 'boolean',
+  polling_interval: 'integer',
+  max_concurrent_tasks: 'integer',
+  blocks_chunk_size: 'integer',
+  events_chunk_size: 'integer',
+}
+// The indexing keys the generator maps by hand (renamed, or into another TOML section).
+// Everything else in INDEXING_KEYS is emitted verbatim under [indexing].
+const INDEXING_MAPPED = ['namespaces', 'models', 'historical', 'controllers', 'transactions', 'preconfirmed', 'raw_events']
+const SQL_KEYS = {
+  cache_size: 'integer',
+  page_size: 'integer',
+  soft_memory_limit: 'integer',
+  hard_memory_limit: 'integer',
+  mmap_size: 'integer',
+  max_connections: 'integer',
+  idle_timeout: 'integer',
+  wal_autocheckpoint: 'integer',
+  journal_size_limit: 'integer',
+}
+const GRPC_KEYS = {
+  subscription_buffer_size: 'integer',
+  optimistic: 'boolean',
+  tcp_keepalive_interval: 'integer',
+  http2_keepalive_interval: 'integer',
+  http2_keepalive_timeout: 'integer',
+  max_message_size: 'integer',
 }
 
 const args = parseArgs(process.argv.slice(2))
@@ -128,39 +164,57 @@ function validateNetwork(name, net) {
     }
   }
 
-  const idx = net.indexing ?? {}
-  if (typeof idx !== 'object' || Array.isArray(idx)) errors.push(`${name}.indexing: must be an object`)
-  else {
-    for (const [key, value] of Object.entries(idx)) {
-      const want = INDEXING_KEYS[key]
-      const label = `${name}.indexing.${key}`
-      if (!want) errors.push(`${label}: unknown key (want one of ${Object.keys(INDEXING_KEYS).join(', ')})`)
-      else if (want === 'boolean' && typeof value !== 'boolean') errors.push(`${label}: must be true or false`)
-      else if (want.endsWith('[]') && !(Array.isArray(value) && value.every((v) => typeof v === 'string'))) {
-        errors.push(`${label}: must be an array of strings`)
-      } else if (want === 'tag[]') {
-        for (const v of value) if (!MODEL_TAG_RE.test(v)) errors.push(`${label}: "${v}" is not a namespace-Model tag`)
-        const dupes = value.filter((v, i) => value.indexOf(v) !== i)
-        if (dupes.length) errors.push(`${label}: duplicate ${[...new Set(dupes)].join(', ')}`)
-      }
-    }
-  }
-
   if (![...worlds, ...contracts].some((c) => c.enabled === true)) {
     errors.push(`${name}: nothing enabled — Torii would have nothing to index`)
   }
   if (!(env.RPC_URL || net.rpc_url)) errors.push(`${name}: missing "rpc_url" (or set the RPC_URL env var)`)
 
-  // Which torii release the image ships (scripts/build-deploy.mjs stamps it into the Dockerfile).
-  // Torii itself never reads this; validated here because this is the one place the file is validated.
+  // Settings moved under "torii" alongside the pin; a stale file must fail loudly, not index with defaults.
+  if (net.indexing !== undefined) errors.push(`${name}.indexing: moved to ${name}.torii.indexing`)
+
+  // Which torii release the image ships (scripts/build-deploy.mjs stamps it into the Dockerfile)
+  // and the settings it runs with. The pin itself torii never reads; validated here because this
+  // is the one place the file is validated.
   const torii = net.torii
   if (!torii || typeof torii !== 'object' || Array.isArray(torii)) errors.push(`${name}: missing "torii": { "repo", "tag" }`)
   else {
     if (!TORII_REPO_RE.test(torii.repo ?? '')) errors.push(`${name}.torii.repo: "${torii.repo ?? ''}" is not a GitHub owner/name`)
     if (!TORII_TAG_RE.test(torii.tag ?? '')) errors.push(`${name}.torii.tag: "${torii.tag ?? ''}" is not a release tag (v1.8.16 or uw-v1.9.3)`)
+    errors.push(...validateSection(`${name}.torii.indexing`, torii.indexing, INDEXING_KEYS))
+    errors.push(...validateSection(`${name}.torii.sql`, torii.sql, SQL_KEYS))
+    errors.push(...validateSection(`${name}.torii.grpc`, torii.grpc, GRPC_KEYS))
   }
 
   return errors
+}
+
+/** Validates one settings object against its allowed keys; returns errors as a list of strings. */
+function validateSection(label, section, keys) {
+  if (section === undefined) return []
+  if (typeof section !== 'object' || Array.isArray(section) || section === null) return [`${label}: must be an object`]
+  const errors = []
+  for (const [key, value] of Object.entries(section)) {
+    const want = keys[key]
+    const at = `${label}.${key}`
+    if (!want) errors.push(`${at}: unknown key (want one of ${Object.keys(keys).join(', ')})`)
+    else if (want === 'boolean' && typeof value !== 'boolean') errors.push(`${at}: must be true or false`)
+    else if (want === 'integer' && !Number.isInteger(value)) errors.push(`${at}: must be an integer`)
+    else if (want.endsWith('[]') && !(Array.isArray(value) && value.every((v) => typeof v === 'string'))) {
+      errors.push(`${at}: must be an array of strings`)
+    } else if (want === 'tag[]') {
+      for (const v of value) if (!MODEL_TAG_RE.test(v)) errors.push(`${at}: "${v}" is not a namespace-Model tag`)
+      const dupes = value.filter((v, i) => value.indexOf(v) !== i)
+      if (dupes.length) errors.push(`${at}: duplicate ${[...new Set(dupes)].join(', ')}`)
+    }
+  }
+  return errors
+}
+
+/** One TOML `key = value` line per entry of a settings object, in file order. */
+function tomlLines(section, skip = []) {
+  return Object.entries(section)
+    .filter(([key]) => !skip.includes(key))
+    .map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
 }
 
 function toToml(networkName, net, source) {
@@ -180,7 +234,10 @@ function toToml(networkName, net, source) {
   // The indexer starts scanning at the oldest enabled block.
   const startBlock = Math.min(...entries.map((e) => e.block))
 
-  const idx = net.indexing ?? {}
+  const torii = net.torii ?? {}
+  const idx = torii.indexing ?? {}
+  const sql = torii.sql ?? {}
+  const grpc = torii.grpc ?? {}
   const dbDir = env.TORII_DB_DIR ?? '/data/torii-db'
   // Token images torii downloads for /static/<contract>/<token_id>/image. Unset, torii uses a
   // fresh temp dir, so the whole cache is thrown away on every restart — keep it on the volume.
@@ -206,6 +263,7 @@ function toToml(networkName, net, source) {
     `controllers = ${idx.controllers === true}`,
     `transactions = ${idx.transactions === true}`,
     `preconfirmed = ${idx.preconfirmed === true}`,
+    ...tomlLines(idx, INDEXING_MAPPED),
     ``,
     `[events]`,
     `raw = ${idx.raw_events === true}`,
@@ -215,7 +273,10 @@ function toToml(networkName, net, source) {
     // world's first backfill — it cannot be retrofitted without a re-index.
     `[sql]`,
     `historical = ${JSON.stringify(idx.historical ?? [])}`,
+    ...tomlLines(sql),
     ``,
+    // Only emitted when set; torii fills the section from its defaults otherwise.
+    ...(Object.keys(grpc).length ? [`[grpc]`, ...tomlLines(grpc), ``] : []),
     `[erc]`,
     `artifacts_path = "${artifactsDir}"`,
     ``,

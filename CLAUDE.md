@@ -108,14 +108,21 @@ whatever the fork inherited (`torii --version` prints `1.9.3-uw (base torii v1.8
 - **Two modes, one config path.** A world with `enabled: true` prepends a `WORLD:0x…` entry to the same
   `indexing.contracts` array the tokens use; `false` gives pure token-indexer mode. Torii ≥1.6.1 no
   longer requires a world address.
-- **`indexing.historical` is an index-time decision.** Models listed there (→ `[sql] historical`) keep
+- **Torii settings live under `torii` in `contracts.json`**, next to the pin: `torii.indexing`,
+  `torii.sql` and `torii.grpc`. Keys are torii's own TOML names and pass through verbatim to the
+  matching section; the generator whitelists them, so an unknown key fails `--check` instead of
+  silently falling back to a default. `sql` and `grpc` exist to cap memory on the Railway instance
+  (page cache per connection, connection count, per-subscriber buffer) — see the generator header
+  for the allowed keys.
+- **`torii.indexing.historical` is an index-time decision.** Models listed there (→ `[sql] historical`) keep
   every emission in `event_messages_historical`; anything else collapses to latest-per-key as it is
   indexed, and Torii never indexes backwards. So the list must be in place *before* the world it
   belongs to is first enabled — which is why it is already set while the pistols world is still
   `enabled: false`. Same for `raw_events`. The pistols client needs `PlayerActivityEvent` and
   `LordsReleaseEvent` historical; Cartridge achievements need `TrophyProgression`.
-- **Unknown `indexing` keys are rejected** by `--check` (`pending` is the pre-1.8 name of
-  `preconfirmed`; the reference configs still use it).
+- **Unknown `torii.indexing` keys are rejected** by `--check` (`pending` is the pre-1.8 name of
+  `preconfirmed`; the reference configs still use it). A top-level `indexing` next to `torii` is
+  rejected too: it is the pre-move location.
 - **`worlds` is an array.** Torii 1.8.16 indexes any number of worlds in one instance — verified — with
   a sync head per `WORLD:` entry and `models`/`entities` keyed by `world_address`. Disabled entries
   stay in the file as history. `indexing.namespaces`/`models` filters are **global**, not per-world.
