@@ -176,12 +176,21 @@
       },
       {
         "game": "loot-survivor",
-        "slug": "beasts",
-        "name": "Beasts",
+        "slug": "beasts_v2",
+        "name": "Beasts V2",
         "type": "ERC721",
         "address": "0x046da8955829adf2bda310099a0063451923f02e648cf25a1203aac6335cf0e4",
         "block": 2209828,
-        "enabled": false
+        "enabled": true
+      },
+      {
+        "game": "loot-survivor",
+        "slug": "beasts",
+        "name": "Beasts V3",
+        "type": "ERC721",
+        "address": "0x00f739e402e52830a736335a0f47d58ec78ba067443c9c6930da182eab2ff8b0",
+        "block": 17351008,
+        "enabled": true
       },
       {
         "game": "jokers",
