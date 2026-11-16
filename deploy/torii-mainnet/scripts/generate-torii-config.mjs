@@ -21,7 +21,7 @@
  *   indexing   namespaces, models, historical (event models kept per emission in
  *              event_messages_historical — an index-time decision, see CLAUDE.md), controllers,
  *              transactions, preconfirmed, raw_events, polling_interval, max_concurrent_tasks,
- *              blocks_chunk_size, events_chunk_size
+ *              blocks_chunk_size, events_chunk_size, batch_chunk_size
  *   sql        cache_size, page_size, soft_memory_limit, hard_memory_limit, mmap_size,
  *              max_connections, idle_timeout, wal_autocheckpoint, journal_size_limit
  *   grpc       subscription_buffer_size, optimistic, tcp_keepalive_interval,
@@ -51,6 +51,7 @@ const INDEXING_KEYS = {
   max_concurrent_tasks: 'integer',
   blocks_chunk_size: 'integer',
   events_chunk_size: 'integer',
+  batch_chunk_size: 'integer',
 }
 // The indexing keys the generator maps by hand (renamed, or into another TOML section).
 // Everything else in INDEXING_KEYS is emitted verbatim under [indexing].

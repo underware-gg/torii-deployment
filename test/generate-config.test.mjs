@@ -56,7 +56,7 @@ for (const network of networks) {
   test(`${network}: torii.indexing, torii.sql and torii.grpc settings pass through to their TOML sections`, () => {
     const { config } = generate(network)
     const { indexing, sql, grpc } = net.torii
-    for (const key of ['polling_interval', 'max_concurrent_tasks', 'blocks_chunk_size', 'events_chunk_size']) {
+    for (const key of ['polling_interval', 'max_concurrent_tasks', 'blocks_chunk_size', 'events_chunk_size', 'batch_chunk_size']) {
       if (key in indexing) assert.equal(config.indexing[key], indexing[key])
       else assert.equal(key in config.indexing, false, `${key} not set, so not emitted`)
     }
