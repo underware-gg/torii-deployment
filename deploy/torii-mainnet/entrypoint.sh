@@ -27,4 +27,7 @@ echo "$(torii --version) | network=${NETWORK} | db_dir=${DB_DIR} ($(du -sh "$DB_
 
 node /app/scripts/generate-torii-config.mjs --out "$CONFIG"
 
+# `enabled: false` only takes effect for a never-indexed contract once its db row is gone.
+/app/scripts/prune-disabled-contracts.sh "$DB_DIR/torii.db"
+
 exec torii --config "$CONFIG"

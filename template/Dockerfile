@@ -54,7 +54,7 @@ WORKDIR /app
 COPY contracts.json /app/contracts.json
 COPY scripts/ /app/scripts/
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh /app/scripts/*.sh
 
 # 8080 is only the local default — Railway injects $PORT and the generated
 # config binds to it. 9200 is metrics; keep it off the public domain.

@@ -41,8 +41,9 @@ the TOML reader in `scripts/lib/toml.mjs` covers only the subset torii configs u
 contracts.json                     # single source of truth for what gets indexed
 template/                          # everything that ships in the image — the ONLY place to edit it
 ├── Dockerfile                     # pinned torii binary on node:22-trixie-slim, no NETWORK
-├── entrypoint.sh                  # volume check → generate config → exec torii
-└── scripts/generate-torii-config.mjs   # contracts.json → torii TOML, + --check validator
+├── entrypoint.sh                  # volume check → generate config → prune → exec torii
+├── scripts/generate-torii-config.mjs   # contracts.json → torii TOML, + --check validator
+└── scripts/prune-disabled-contracts.sh # drops never-indexed db rows of disabled contracts
 deploy/torii-<net>/                # GENERATED: template/ + ENV NETWORK + contracts.json. Railway builds these.
 scripts/build-deploy.mjs           # template/ + contracts.json → deploy/; --check for drift
 scripts/find-deploy-block.mjs      # binary-searches a contract's deployment block over RPC
@@ -212,6 +213,17 @@ re-sync", and that is not what happens:
   never wipe anything without being asked.
 - `enabled: false` on an already-indexed contract **does not stop indexing it** either — same reason,
   the list comes from the db
+- the one exception is a contract that **never completed a cycle** (`head IS NULL`): the entrypoint
+  runs `prune-disabled-contracts.sh` before torii and deletes that row if the contract is listed
+  with `enabled: false`. It has to happen there — torii holds the sqlite write lock for as long as
+  it runs (one transaction, committed only after a successful fetch), so a console `DELETE` on a
+  stalled instance gets "database is locked". Rows with a head, and rows not in `contracts.json`
+  (torii adds its own for externally registered contracts), are never touched.
+- **a new contract whose first fetch times out stalls every contract.** Torii sends one batch with
+  a `getEvents` per contract; a new one scans from the global `world_block` (bug below), and if the
+  RPC answers that with a non-JSON 503 the whole batch fails (`expected value at line 1 column 1`).
+  Seen with Beasts V2/V3 on 2026-11-03. Disable it (the prune then removes the row) or set its
+  `head` to `block - 1` by hand while torii is stopped.
 - check reality before reasoning about it:
   `curl -sG <toriiUrl>/sql --data-urlencode "query=SELECT contract_address, head FROM contracts"`
 

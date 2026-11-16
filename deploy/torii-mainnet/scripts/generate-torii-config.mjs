@@ -4,6 +4,8 @@
  *
  * Usage:
  *   node generate-torii-config.mjs [--network SN_MAIN] [--out path] [--check]
+ *   node generate-torii-config.mjs --disabled-addresses   one padded address per line, for
+ *                                                         prune-disabled-contracts.sh
  *
  * Env (all optional except NETWORK, which can also come from --network):
  *   NETWORK               SN_MAIN | SN_SEPOLIA — which section of contracts.json to use
@@ -83,7 +85,7 @@ function parseArgs(argv) {
   const out = { flags: new Set() }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a === '--check' || a === '--print') out.flags.add(a.slice(2))
+    if (a === '--check' || a === '--print' || a === '--disabled-addresses') out.flags.add(a.slice(2))
     else if (a === '--network' || a === '-n') out.network = argv[++i]
     else if (a === '--out' || a === '-o') out.out = argv[++i]
     else if (a === '--contracts' || a === '-c') out.contracts = argv[++i]
@@ -327,6 +329,17 @@ if (!data[network]) die(`network "${network}" not found in ${source} (have: ${ne
 
 const errors = validateNetwork(network, data[network])
 if (errors.length) die(`invalid config for ${network}:\n  ${errors.join('\n  ')}`)
+
+// Addresses listed with `enabled: false`, in the form torii stores them (0x + 64 hex, lowercase).
+// An address that is also enabled somewhere is left out, so it can never be pruned.
+if (args.flags.has('disabled-addresses')) {
+  const pad = (a) => '0x' + a.slice(2).toLowerCase().padStart(64, '0')
+  const all = [...(data[network].worlds ?? []), ...(data[network].contracts ?? [])]
+  const enabled = new Set(all.filter((c) => c.enabled === true).map((c) => pad(c.address)))
+  const disabled = new Set(all.filter((c) => c.enabled !== true).map((c) => pad(c.address)))
+  for (const a of disabled) if (!enabled.has(a)) console.log(a)
+  process.exit(0)
+}
 
 const { toml, startBlock, count } = toToml(network, data[network], source)
 

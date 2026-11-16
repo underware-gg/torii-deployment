@@ -23,7 +23,7 @@ const TEMPLATE = join(ROOT, 'template')
 const check = process.argv.includes('--check')
 
 // Everything in template/ except the Dockerfile ships verbatim; contracts.json comes from the root.
-const SHIPPED = ['entrypoint.sh', 'scripts/generate-torii-config.mjs']
+const SHIPPED = ['entrypoint.sh', 'scripts/generate-torii-config.mjs', 'scripts/prune-disabled-contracts.sh']
 
 const contracts = JSON.parse(readFileSync(join(ROOT, 'contracts.json'), 'utf8'))
 const template = readFileSync(join(TEMPLATE, 'Dockerfile'), 'utf8')
